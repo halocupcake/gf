@@ -91,6 +91,7 @@ FILE *commandLog;
 char emptyString;
 bool programRunning;
 const char *vimServerName = "GVIM";
+const char *vimExecutable = "vim";
 const char *logPipePath;
 const char *controlPipePath;
 Array<INIState> presetCommands;
@@ -760,7 +761,7 @@ void CommandPause(void *) {
 
 void CommandSyncWithGvim(void *) {
 	char buffer[1024];
-	StringFormat(buffer, sizeof(buffer), "vim --servername %s --remote-expr \"execute(\\\"ls\\\")\" | grep %%", vimServerName);
+	StringFormat(buffer, sizeof(buffer), "%s --servername %s --remote-expr \"execute(\\\"ls\\\")\" | grep %%", vimExecutable, vimServerName);
 	FILE *file = popen(buffer, "r");
 	if (!file) return;
 	buffer[fread(buffer, 1, 1023, file)] = 0;
@@ -777,7 +778,7 @@ void CommandSyncWithGvim(void *) {
 
 	if (name[0] != '/' && name[0] != '~') {
 		char buffer[1024];
-		StringFormat(buffer, sizeof(buffer), "vim --servername %s --remote-expr \"execute(\\\"pwd\\\")\" | grep '/'", vimServerName);
+		StringFormat(buffer, sizeof(buffer), "%s --servername %s --remote-expr \"execute(\\\"pwd\\\")\" | grep '/'", vimExecutable, vimServerName);
 		FILE *file = popen(buffer, "r");
 		if (!file) return;
 		buffer[fread(buffer, 1, 1023, file)] = 0;
@@ -1067,8 +1068,12 @@ void LoadSettings(bool earlyPass) {
 					if (strcmp(state.key, themeItems[i])) continue;
 					((uint32_t *) &ui.theme)[i] = strtoul(state.value, nullptr, 16);
 				}
-			} else if (0 == strcmp(state.section, "vim") && earlyPass && 0 == strcmp(state.key, "server_name")) {
-				vimServerName = state.value;
+			} else if (0 == strcmp(state.section, "vim") && earlyPass) {
+                if (0 == strcmp(state.key, "server_name")) {
+                    vimServerName = state.value;
+                } else if (0 == strcmp(state.key, "executable")) {
+                    vimExecutable = state.value;
+                }
 			} else if (0 == strcmp(state.section, "pipe") && earlyPass && 0 == strcmp(state.key, "log")) {
 				logPipePath = state.value;
 				mkfifo(logPipePath, 6 + 6 * 8 + 6 * 64);
